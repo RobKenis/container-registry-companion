@@ -1,34 +1,52 @@
 version: '3'
 
 env:
-  GOLANG_CI_TAG: v1.56.2
+  GOLANG_CI_TAG: v1.60.3
   IMAGE_BUILDER: podman
   CONTAINER_RUNTIME: podman
 
 tasks:
   fmt:
+    desc: Run go fmt
     cmds:
     - go fmt ./...
+  vet:
+    desc: Run go vet
+    cmds:
+    - go vet ./...
   lint:
+    desc: Run golangci-lint and hadolint
     deps:
     - fmt
     cmds:
     - $CONTAINER_RUNTIME run -t --rm -v $(pwd):/app -w /app golangci/golangci-lint:$GOLANG_CI_TAG golangci-lint run -v
     - $CONTAINER_RUNTIME run --rm -i hadolint/hadolint < build/package/Dockerfile
   test:
+    desc: Run tests
     deps:
     - fmt
     cmds:
     - go test -cover -coverprofile=coverage.out -parallel 10 ./...
   build:image:
+    desc: Build the Container image
     cmds:
     - $IMAGE_BUILDER build -f build/package/Dockerfile .
     silent: true
   dev:
+    desc: Start go server
     cmds:
     - go run cmd/server.go
   coverage:
+    desc: Show test coverage
     deps:
     - test
     cmds:
     - go tool cover -html=coverage.out
+  up:registry:
+    desc: Start the registry using compose
+    cmds:
+    - $CONTAINER_RUNTIME compose up registry
+  up:all:
+    desc: Start all services using compose
+    cmds:
+    - $CONTAINER_RUNTIME compose up

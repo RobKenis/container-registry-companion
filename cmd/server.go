@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/robkenis/container-registry-companion/internal/catalog"
+	catalog_handler "github.com/robkenis/container-registry-companion/internal/ports/http/catalog_handler"
 	"github.com/robkenis/container-registry-companion/internal/ports/http/health_handler"
 	"github.com/robkenis/container-registry-companion/internal/ports/http/index_handler"
 	"github.com/robkenis/container-registry-companion/internal/utils"
@@ -22,17 +24,19 @@ func main() {
 		log.Logger = ecszerolog.New(os.Stdout)
 	}
 
+	webDirectory := utils.GetEnv("STATIC_WEB_DIRECTORY", "./web/static")
+	log.Debug().Msg("Using web directory: " + webDirectory)
+
 	r := http.NewServeMux()
 
 	r.Handle("GET /health", health_handler.Handler{})
 
+	r.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(webDirectory))))
 	r.Handle("GET /", index_handler.Handler{})
 
-	r.Handle("POST /clicked", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Info().Msg("Clicked!")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Clicked!"))
-	}))
+	r.Handle("GET /repositories", catalog_handler.Handler{
+		Catalog: catalog.NewCatalog(utils.GetEnv("REGISTRY_URL", "http://localhost:5000")),
+	})
 
 	srv := &http.Server{
 		Handler:      r,

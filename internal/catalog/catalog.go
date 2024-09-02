@@ -3,6 +3,7 @@ package catalog
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/robkenis/container-registry-companion/internal/repository"
 	"github.com/rs/zerolog/log"
@@ -35,10 +36,10 @@ func (c *instantLoadingCatalog) List() ([]repository.Repository, error) {
 	}
 	defer resp.Body.Close()
 	var catalogResponse catalogResponse
-	json.NewDecoder(resp.Body).Decode(&catalogResponse)
+	_ = json.NewDecoder(resp.Body).Decode(&catalogResponse)
 	repositories := make([]repository.Repository, len(catalogResponse.Repositories))
 	for i, name := range catalogResponse.Repositories {
-		repositories[i] = repository.Repository{Name: name}
+		repositories[i] = repository.Repository{Name: name, LastUpdated: time.Now()}
 	}
 	return repositories, nil
 }
