@@ -1,0 +1,34 @@
+version: '3'
+
+env:
+  GOLANG_CI_TAG: v1.56.2
+  IMAGE_BUILDER: podman
+  CONTAINER_RUNTIME: podman
+
+tasks:
+  fmt:
+    cmds:
+    - go fmt ./...
+  lint:
+    deps:
+    - fmt
+    cmds:
+    - $CONTAINER_RUNTIME run -t --rm -v $(pwd):/app -w /app golangci/golangci-lint:$GOLANG_CI_TAG golangci-lint run -v
+    - $CONTAINER_RUNTIME run --rm -i hadolint/hadolint < build/package/Dockerfile
+  test:
+    deps:
+    - fmt
+    cmds:
+    - go test -cover -coverprofile=coverage.out -parallel 10 ./...
+  build:image:
+    cmds:
+    - $IMAGE_BUILDER build -f build/package/Dockerfile .
+    silent: true
+  dev:
+    cmds:
+    - go run cmd/server.go
+  coverage:
+    deps:
+    - test
+    cmds:
+    - go tool cover -html=coverage.out
