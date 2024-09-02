@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/robkenis/container-registry-companion/internal/ports/http/health_handler"
+	"github.com/robkenis/container-registry-companion/internal/ports/http/index_handler"
 	"github.com/robkenis/container-registry-companion/internal/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -24,6 +25,14 @@ func main() {
 	r := http.NewServeMux()
 
 	r.Handle("GET /health", health_handler.Handler{})
+
+	r.Handle("GET /", index_handler.Handler{})
+
+	r.Handle("POST /clicked", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Info().Msg("Clicked!")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Clicked!"))
+	}))
 
 	srv := &http.Server{
 		Handler:      r,
